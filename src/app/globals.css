@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #f7f5f2;
+  color: #141312;
+}
+
+::selection {
+  background-color: #141312;
+  color: #f7f5f2;
+}
+
+.eyebrow {
+  @apply font-body text-[11px] uppercase tracking-widest2 text-giuseppe-muted;
+}
+
+.editorial-container {
+  @apply mx-auto max-w-editorial px-5 sm:px-8 lg:px-12;
+}
+
+.hairline {
+  @apply border-giuseppe-line;
+}
+
+.link-underline {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  background-size: 0% 1px;
+  transition: background-size 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.link-underline:hover {
+  background-size: 100% 1px;
+}
+
+img {
+  -webkit-user-drag: none;
+}
