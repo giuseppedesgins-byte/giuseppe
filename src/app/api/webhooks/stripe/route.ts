@@ -4,11 +4,20 @@ import { stripe } from "@/lib/stripe";
 import { emails } from "@/lib/email";
 
 /**
- * Handles checkout.session.completed (marks orders paid) and charge.refunded (keeps
+ * Handles checkout.session.completed (marks orders paid) and refund.updated (keeps
  * orders in sync when a refund is issued directly from the Stripe dashboard, not just
- * via the "Refund full order" button in /admin/orders — both paths lead here or update
- * the DB directly, and this handler no-ops if an order is already marked REFUNDED so
- * the two don't double-send the refund email).
+ * via the "Refund full order" button in /admin/orders).
+ *
+ * Using refund.updated rather than the older charge.refunded — as of Stripe's Oct 2024
+ * refund-events change, refund.created/updated/failed fire for all refund types
+ * (including ordinary card refunds), and it's the event Stripe currently recommends.
+ * Its payload is a Refund object (id, payment_intent, status, amount...), not a Charge,
+ * which is why this checks `refund.status === "succeeded"` rather than treating the
+ * event's mere existence as confirmation the refund completed.
+ *
+ * This handler no-ops if an order is already marked REFUNDED, so it doesn't double-send
+ * the refund email when the refund was initiated from the admin button (which updates
+ * the order and sends the email itself, before this webhook event even arrives).
  *
  * FLAG: dispute/chargeback handling (charge.dispute.created) is still not wired up —
  * add before accepting live payments. See README "Flagged Decisions".
@@ -45,14 +54,11 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  if (event.type === "charge.refunded") {
-    const charge = event.data.object as any;
-    const paymentIntentId = charge.payment_intent as string | undefined;
-    if (paymentIntentId) {
+  if (event.type === "refund.updated") {
+    const refund = event.data.object as any;
+    const paymentIntentId = refund.payment_intent as string | undefined;
+    if (paymentIntentId && refund.status === "succeeded") {
       const order = await prisma.order.findFirst({ where: { stripePaymentIntentId: paymentIntentId } });
-      // Skip if already REFUNDED — avoids a duplicate email when the refund was
-      // initiated from the admin "Refund full order" button, which updates the order
-      // and sends the email itself before this webhook event even arrives.
       if (order && order.status !== "REFUNDED") {
         const updated = await prisma.order.update({ where: { id: order.id }, data: { status: "REFUNDED" } });
         await emails.orderRefunded(updated.email, updated.orderNumber, `$${(updated.totalCents / 100).toFixed(2)}`);

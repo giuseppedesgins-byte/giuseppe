@@ -31,7 +31,7 @@ async function updateFulfillment(formData: FormData) {
  * Full refund only for V1 (no partial refunds) — per business decision, Giuseppe does
  * NOT retain its commission on a refund; the entire order total goes back to the
  * customer. Actually moves money via Stripe (not just a status label), and is kept in
- * sync with refunds issued directly in the Stripe dashboard via the charge.refunded
+ * sync with refunds issued directly in the Stripe dashboard via the refund.updated
  * webhook (see src/app/api/webhooks/stripe/route.ts).
  */
 async function refundOrder(formData: FormData) {
