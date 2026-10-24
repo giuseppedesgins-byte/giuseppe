@@ -141,7 +141,9 @@ export function CheckoutForm({
           {brandItems.map((i) => (
             <div key={`${i.productId}-${JSON.stringify(i.options)}`} className="flex justify-between">
               <span>
-                {i.name} × {i.quantity}
+                {i.name}
+                {i.options?.size ? ` — Size ${i.options.size}` : ""}
+                {i.options?.color ? ` — ${i.options.color}` : ""} × {i.quantity}
               </span>
               <span>{formatPrice(i.priceCents * i.quantity, i.currency)}</span>
             </div>

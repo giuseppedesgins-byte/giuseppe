@@ -2,9 +2,13 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/pricing";
+import { sweepOrders } from "@/lib/order-sweep";
 
 export default async function AdminOrdersPage({ searchParams }: { searchParams: { fulfillment?: string; status?: string } }) {
   requireAdmin();
+  // Lazy sweep — see lib/order-sweep.ts. Releases stale reservations and flags overdue
+  // shipments every time this list is viewed, since there's no scheduled job to do it.
+  await sweepOrders();
   const orders = await prisma.order.findMany({
     where: {
       ...(searchParams.fulfillment ? { fulfillmentStatus: searchParams.fulfillment as any } : {}),
@@ -26,6 +30,9 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
             </div>
             <div className="text-right text-xs">
               <p className="uppercase tracking-widest2 text-giuseppe-muted">{o.status} / {o.fulfillmentStatus}</p>
+              {o.neverShippedFlaggedAt && (
+                <p className="mt-1 uppercase tracking-widest2 text-red-700">Overdue — never shipped</p>
+              )}
               <p className="mt-1">{formatPrice(o.totalCents, o.currency)}</p>
             </div>
           </Link>

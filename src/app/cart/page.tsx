@@ -62,6 +62,9 @@ export default function CartPage() {
                   <div className="flex flex-1 flex-col justify-between">
                     <div>
                       <p className="font-body text-sm">{item.name}</p>
+                      {item.options?.size && (
+                        <p className="text-xs text-giuseppe-muted">Size: {item.options.size}</p>
+                      )}
                       {item.options?.color && (
                         <p className="text-xs text-giuseppe-muted">Color: {item.options.color}</p>
                       )}

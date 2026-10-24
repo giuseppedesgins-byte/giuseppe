@@ -3,15 +3,30 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getSystemAdmin } from "@/lib/admin-helpers";
-import { bpsToPercentLabel } from "@/lib/pricing";
+import { bpsToPercentLabel, formatPrice } from "@/lib/pricing";
+import { getSellerBalances, recordPayout } from "@/lib/ledger";
+import { logAudit } from "@/lib/audit";
 
 async function updateBrand(formData: FormData) {
   "use server";
   requireAdmin();
   const id = String(formData.get("id"));
+
+  // Founding 10 position: blank = none, otherwise 1-10 and not already held by another brand.
+  const slotRaw = String(formData.get("foundingSlot") || "").trim();
+  let foundingSlot: number | null = null;
+  if (slotRaw) {
+    const n = Number(slotRaw);
+    if (!Number.isInteger(n) || n < 1 || n > 10) redirect(`/admin/brands/${id}?slotError=range`);
+    const holder = await prisma.brand.findFirst({ where: { foundingSlot: n, NOT: { id } } });
+    if (holder) redirect(`/admin/brands/${id}?slotError=taken`);
+    foundingSlot = n;
+  }
+
   await prisma.brand.update({
     where: { id },
     data: {
+      foundingSlot,
       name: String(formData.get("name")),
       legalName: String(formData.get("legalName") || "") || null,
       status: formData.get("status") as any,
@@ -51,6 +66,43 @@ async function addShippingOption(formData: FormData) {
   redirect(`/admin/brands/${brandId}`);
 }
 
+/**
+ * Records that Giuseppe paid this seller OUTSIDE the app (wire, PayPal, etc. — Stripe
+ * Connect isn't configured yet, see README). This is bookkeeping of a payment already
+ * made, not an instruction that moves real money — it just deducts the amount from the
+ * seller's AVAILABLE balance and logs a PAYOUT ledger entry + a legacy Payout row.
+ */
+async function recordManualPayout(formData: FormData) {
+  "use server";
+  requireAdmin();
+  const brandId = String(formData.get("brandId"));
+  const amountCents = Math.round(Number(formData.get("amount") || 0) * 100);
+  const note = String(formData.get("note") || "");
+  const admin = await getSystemAdmin();
+
+  if (amountCents <= 0) redirect(`/admin/brands/${brandId}?payoutError=invalid-amount`);
+
+  const sellerAccount = await prisma.sellerAccount.findUnique({ where: { brandId } });
+  if (sellerAccount) {
+    await prisma.payout.create({
+      data: { sellerAccountId: sellerAccount.id, amountCents, status: "paid" },
+    });
+  }
+  await recordPayout({ brandId, amountCents, reason: note || undefined });
+  await logAudit({
+    entityType: "ORDER",
+    entityId: brandId,
+    action: "MANUAL_PAYOUT_RECORDED",
+    actorType: "ADMIN",
+    actorId: admin.id,
+    actorLabel: admin.name,
+    amountCents,
+    reason: note || undefined,
+  });
+
+  redirect(`/admin/brands/${brandId}`);
+}
+
 async function addEnforcementAction(formData: FormData) {
   "use server";
   requireAdmin();
@@ -66,20 +118,21 @@ async function addEnforcementAction(formData: FormData) {
     "Warning issued": "WARNING",
     "Placed on probation": "PROBATION",
     Suspended: "SUSPENDED",
-    "Permanently banned": "BANNED",
+    "Permanently banned": "PERMANENTLY_BANNED",
+    Removed: "REMOVED",
     "Restored to good standing": "GOOD_STANDING",
   };
   const standing = standingMap[action];
   if (standing) {
     await prisma.sellerPerformance.update({ where: { brandId }, data: { standing: standing as any } });
-    if (standing === "SUSPENDED" || standing === "BANNED") {
-      await prisma.brand.update({ where: { id: brandId }, data: { status: standing === "BANNED" ? "REMOVED" : "SUSPENDED" } });
+    if (standing === "SUSPENDED" || standing === "PERMANENTLY_BANNED" || standing === "REMOVED") {
+      await prisma.brand.update({ where: { id: brandId }, data: { status: standing === "SUSPENDED" ? "SUSPENDED" : "REMOVED" } });
     }
   }
   redirect(`/admin/brands/${brandId}`);
 }
 
-export default async function AdminBrandDetailPage({ params }: { params: { id: string } }) {
+export default async function AdminBrandDetailPage({ params, searchParams }: { params: { id: string }; searchParams: { payoutError?: string; slotError?: string } }) {
   requireAdmin();
   const brand = await prisma.brand.findUnique({
     where: { id: params.id },
@@ -93,6 +146,8 @@ export default async function AdminBrandDetailPage({ params }: { params: { id: s
     },
   });
   if (!brand) notFound();
+
+  const balances = await getSellerBalances(brand.id);
 
   return (
     <div className="max-w-4xl space-y-12">
@@ -140,6 +195,26 @@ export default async function AdminBrandDetailPage({ params }: { params: { id: s
             <input type="checkbox" name="foundingBrand" defaultChecked={brand.foundingBrand} /> Founding Brand
           </label>
           <label className="flex items-center gap-2 text-sm">
+            Founding 10 position (1-10, blank = none)
+            <input
+              type="number"
+              name="foundingSlot"
+              min={1}
+              max={10}
+              defaultValue={brand.foundingSlot ?? ""}
+              className="w-20 border border-giuseppe-line px-2 py-1"
+            />
+          </label>
+          <p className="text-xs text-giuseppe-muted">
+            The brand appears in the public Founding 10 grid only when its status is ACTIVE.
+          </p>
+          {searchParams.slotError === "taken" && (
+            <p className="text-xs text-red-700">That position is already held by another brand. Clear it there first.</p>
+          )}
+          {searchParams.slotError === "range" && (
+            <p className="text-xs text-red-700">Position must be a whole number from 1 to 10.</p>
+          )}
+          <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="promotionRequirementConfirmed" defaultChecked={brand.promotionRequirementConfirmed} /> 24-hour launch promotion requirement confirmed with brand
           </label>
           <label className="flex items-center gap-2 text-sm">
@@ -159,6 +234,30 @@ export default async function AdminBrandDetailPage({ params }: { params: { id: s
         </div>
       )}
 
+      <div className="border border-giuseppe-line bg-white p-6">
+        <p className="mb-4 text-[11px] uppercase tracking-widest2 text-giuseppe-muted">Seller balance</p>
+        <div className="mb-4 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
+          <Stat label="Pending" value={formatPrice(balances.pendingCents)} />
+          <Stat label="Available" value={formatPrice(balances.availableCents)} />
+          <Stat label="Paid out" value={formatPrice(-balances.paidOutCents)} />
+          <Stat label="Refunded/reversed" value={formatPrice(balances.reversedCents)} />
+        </div>
+        {searchParams.payoutError === "invalid-amount" && (
+          <p className="mb-3 text-xs text-red-700">Enter an amount greater than $0.</p>
+        )}
+        <p className="mb-2 text-xs text-giuseppe-muted">
+          {brand.sellerAccount?.stripeOnboardingComplete
+            ? "This seller is connected via Stripe — new orders pay them out automatically, so manual recording below is only for anything settled outside Giuseppe."
+            : "This seller hasn't connected a bank account yet, so orders aren't routing real money to them — record a payout you already sent outside Giuseppe (wire, PayPal, etc.) to keep this balance accurate."}
+        </p>
+        <form action={recordManualPayout} className="flex gap-2">
+          <input type="hidden" name="brandId" value={brand.id} />
+          <input name="amount" type="number" step="0.01" min="0.01" placeholder="Amount $" className="w-32 border border-giuseppe-line px-2 py-1 text-sm" />
+          <input name="note" placeholder="Note (optional)" className="flex-1 border border-giuseppe-line px-2 py-1 text-sm" />
+          <button className="border border-giuseppe-ink px-3 py-1 text-xs uppercase tracking-widest2">Record payout</button>
+        </form>
+      </div>
+
       {brand.membership && (
         <div className="border border-giuseppe-line bg-white p-6 text-sm">
           <p className="mb-2 text-[11px] uppercase tracking-widest2 text-giuseppe-muted">Membership</p>
@@ -166,6 +265,11 @@ export default async function AdminBrandDetailPage({ params }: { params: { id: s
             {brand.membership.planName} · {brand.membership.status} · $
             {(brand.membership.monthlyPriceCents / 100).toFixed(2)}/mo · {bpsToPercentLabel(brand.membership.commissionBps)} commission
             {brand.membership.trialEndsAt && ` · trial ends ${brand.membership.trialEndsAt.toLocaleDateString()}`}
+          </p>
+          <p className="mt-1 text-xs text-giuseppe-muted">
+            {brand.membership.stripeSubscriptionId
+              ? "Billing is set up — this seller has a card on file with Stripe."
+              : "No payment method on file yet — the seller hasn't set up billing from their portal."}
           </p>
         </div>
       )}
@@ -245,6 +349,7 @@ export default async function AdminBrandDetailPage({ params }: { params: { id: s
               <option>Warning issued</option>
               <option>Placed on probation</option>
               <option>Suspended</option>
+              <option>Removed</option>
               <option>Permanently banned</option>
               <option>Restored to good standing</option>
             </select>
@@ -266,7 +371,7 @@ function LabeledInput({ name, label, defaultValue, type = "text" }: { name: stri
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+function Stat({ label, value }: { label: string; value: number | string }) {
   return (
     <div>
       <p className="font-display text-xl">{value}</p>

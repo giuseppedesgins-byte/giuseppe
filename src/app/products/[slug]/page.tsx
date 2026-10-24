@@ -82,6 +82,12 @@ export default async function ProductPage({ params }: { params: { slug: string }
           <h1 className="font-display text-3xl sm:text-4xl">{product.name}</h1>
           <p className="mt-3 text-xl">{formatPrice(product.priceCents, product.currency)}</p>
 
+          {product.finalSale && (
+            <p className="mt-4 inline-block border border-giuseppe-ink px-3 py-1 text-[11px] uppercase tracking-widest2">
+              Final Sale — not eligible for change-of-mind returns
+            </p>
+          )}
+
           <p className="mt-8 whitespace-pre-line text-sm leading-relaxed text-giuseppe-ink">
             {product.description}
           </p>
@@ -100,6 +106,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
                 imageUrl: product.images[0]?.url ?? null,
               }}
               colorOptions={product.colorOptions}
+              sizeOptions={product.sizeOptions}
             />
           </div>
 
@@ -108,6 +115,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
               <Detail label="Materials" value={product.materials} />
             )}
             {product.sizingInfo && <Detail label="Sizing" value={product.sizingInfo} />}
+            {product.sizeOptions.length > 0 && <Detail label="Available sizes" value={product.sizeOptions.join(", ")} />}
             {product.processingTime && <Detail label="Processing time" value={product.processingTime} />}
             <Detail
               label="Shipping"
@@ -119,7 +127,10 @@ export default async function ProductPage({ params }: { params: { slug: string }
                   : "Shipping options provided at checkout."
               }
             />
-            {product.returnPolicy && <Detail label="Returns" value={product.returnPolicy} />}
+            <Detail
+              label="Returns"
+              value={product.finalSale ? "Final Sale — not eligible for change-of-mind returns" : product.returnPolicy || "See our Returns policy."}
+            />
             {product.refundPolicy && <Detail label="Refunds" value={product.refundPolicy} />}
             <Detail label="Sold by" value={product.brand.name} />
           </dl>

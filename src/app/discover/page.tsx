@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ProductCard } from "@/components/ProductCard";
+import { LinkButton } from "@/components/Button";
 import { getDiscoverProducts, getCategories, getDistinctBrandCountries, getActiveBrands } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
@@ -111,9 +112,22 @@ export default async function DiscoverPage({
           />
         ))}
         {products.length === 0 && (
-          <p className="col-span-full py-20 text-center text-sm text-giuseppe-muted">
-            No products match these filters yet.
-          </p>
+          <div className="col-span-full py-20 text-center">
+            {Object.values(searchParams).some(Boolean) ? (
+              <p className="text-sm text-giuseppe-muted">No products match these filters yet.</p>
+            ) : (
+              <>
+                <p className="font-display text-2xl">Nothing to discover just yet.</p>
+                <p className="mx-auto mt-3 max-w-md text-sm text-giuseppe-muted">
+                  Giuseppe is selecting its first designers. Pieces appear here once a designer and each
+                  product have been approved.
+                </p>
+                <div className="mt-8">
+                  <LinkButton href="/founding-10">Meet the Founding 10</LinkButton>
+                </div>
+              </>
+            )}
+          </div>
         )}
       </div>
     </div>

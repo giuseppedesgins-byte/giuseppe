@@ -11,6 +11,9 @@ async function createProduct(formData: FormData) {
   const slug = await uniqueSlug(name, async (s) => Boolean(await prisma.product.findUnique({ where: { slug: s } })));
   const imageUrl = String(formData.get("imageUrl") || "");
 
+  // Admin-created products go straight to DRAFT — admins have full authority and can flip
+  // status to LIVE directly on the detail page; this is distinct from the seller
+  // "propose a product" flow, which always lands in PENDING_REVIEW.
   const product = await prisma.product.create({
     data: {
       slug,

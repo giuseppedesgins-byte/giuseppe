@@ -12,15 +12,30 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
     orderBy: { createdAt: "desc" },
   });
 
-  const statuses = ["DRAFT", "PENDING_APPROVAL", "APPROVED", "PUBLISHED", "UNPUBLISHED", "REJECTED"];
+  const statuses = [
+    "DRAFT",
+    "PENDING_REVIEW",
+    "NEEDS_CHANGES",
+    "APPROVED",
+    "LIVE",
+    "OUT_OF_STOCK",
+    "PENDING_REACTIVATION",
+    "REJECTED",
+    "ARCHIVED",
+  ];
 
   return (
     <div>
       <div className="mb-8 flex items-center justify-between">
         <h1 className="font-display text-3xl">Products</h1>
-        <Link href="/admin/products/new" className="border border-giuseppe-ink px-4 py-2 text-[11px] uppercase tracking-widest2">
-          + New product
-        </Link>
+        <div className="flex gap-3">
+          <Link href="/admin/products/review" className="border border-giuseppe-ink px-4 py-2 text-[11px] uppercase tracking-widest2">
+            Review queue
+          </Link>
+          <Link href="/admin/products/new" className="bg-giuseppe-ink px-4 py-2 text-[11px] uppercase tracking-widest2 text-giuseppe-bg">
+            + New product
+          </Link>
+        </div>
       </div>
       <div className="mb-6 flex flex-wrap gap-4 text-xs">
         <Link href="/admin/products" className={!status ? "underline" : "text-giuseppe-muted"}>All</Link>

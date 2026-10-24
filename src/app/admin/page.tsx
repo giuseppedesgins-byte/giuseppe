@@ -1,24 +1,38 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { sweepOrders } from "@/lib/order-sweep";
 
 export default async function AdminOverviewPage() {
   requireAdmin();
+  await sweepOrders();
 
-  const [pendingApplications, activeBrands, publishedProducts, orders, unfulfilledOrders] = await Promise.all([
+  const [
+    pendingApplications,
+    activeBrands,
+    liveProducts,
+    orders,
+    unfulfilledOrders,
+    productsNeedingReview,
+    openIssues,
+  ] = await Promise.all([
     prisma.brandApplication.count({ where: { status: "PENDING" } }),
     prisma.brand.count({ where: { status: "ACTIVE" } }),
-    prisma.product.count({ where: { status: "PUBLISHED" } }),
+    prisma.product.count({ where: { status: "LIVE" } }),
     prisma.order.count(),
     prisma.order.count({ where: { fulfillmentStatus: "UNFULFILLED", status: { in: ["PAID", "PROCESSING"] } } }),
+    prisma.product.count({ where: { status: { in: ["PENDING_REVIEW", "PENDING_REACTIVATION"] } } }),
+    prisma.orderIssue.count({ where: { status: { in: ["OPEN", "AWAITING_SELLER", "ESCALATED"] } } }),
   ]);
 
   const cards = [
     { label: "Pending applications", value: pendingApplications, href: "/admin/applications" },
     { label: "Active brands", value: activeBrands, href: "/admin/brands" },
-    { label: "Published products", value: publishedProducts, href: "/admin/products" },
+    { label: "Live products", value: liveProducts, href: "/admin/products" },
+    { label: "Products awaiting review", value: productsNeedingReview, href: "/admin/products/review" },
     { label: "Total orders", value: orders, href: "/admin/orders" },
     { label: "Awaiting fulfillment", value: unfulfilledOrders, href: "/admin/orders?fulfillment=UNFULFILLED" },
+    { label: "Open issues/cases", value: openIssues, href: "/admin/issues" },
   ];
 
   return (
