@@ -140,8 +140,12 @@ async function main() {
     create: { userId: adminUser.id, name: "Giuseppe Admin" },
   });
 
-  console.log("Seeding brands + products...");
-  for (const b of BRANDS) {
+  // Pre-launch: no fake brands/products or sample application on the live site.
+  // Flip to true only for local demos.
+  const SEED_SAMPLE_DATA = false;
+
+  console.log(SEED_SAMPLE_DATA ? "Seeding brands + products..." : "Skipping sample brands/products.");
+  for (const b of SEED_SAMPLE_DATA ? BRANDS : []) {
     const brand = await prisma.brand.upsert({
       where: { slug: b.slug },
       update: {},
@@ -208,7 +212,7 @@ async function main() {
           materials: "See product description. Full materials breakdown provided by brand at application review.",
           sizingInfo: "True to size. Full size chart available at checkout.",
           colorOptions: ["Natural"],
-          status: ProductStatus.PUBLISHED,
+          status: ProductStatus.LIVE,
           featured: i === 0,
           newArrival: i === b.products.length - 1,
           processingTime: "2-4 business days",
@@ -225,8 +229,7 @@ async function main() {
     }
   }
 
-  console.log("Seeding a sample pending brand application...");
-  await prisma.brandApplication.upsert({
+  if (SEED_SAMPLE_DATA) await prisma.brandApplication.upsert({
     where: { id: "seed-application-1" },
     update: {},
     create: {
