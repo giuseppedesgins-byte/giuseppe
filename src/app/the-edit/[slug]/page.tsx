@@ -19,9 +19,13 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const a = await getPublicArticle(params.slug);
   if (!a) return {};
   return {
-    title: a.title,
-    description: a.dek ?? undefined,
-    openGraph: { title: a.title, description: a.dek ?? undefined, images: a.coverImageUrl ? [a.coverImageUrl] : [] },
+    title: a.metaTitle ?? a.title,
+    description: a.metaDescription ?? a.dek ?? undefined,
+    openGraph: {
+      title: a.metaTitle ?? a.title,
+      description: a.metaDescription ?? a.dek ?? undefined,
+      images: a.coverImageUrl ? [a.coverImageUrl] : [],
+    },
   };
 }
 
@@ -38,6 +42,9 @@ export default async function ArticlePage({ params }: { params: { slug: string }
         <Link href={`/the-edit?category=${cat.slug}`} className="eyebrow link-underline text-giuseppe-ink">
           {cat.label}
         </Link>
+        {article.issue && (
+          <span className="eyebrow ml-4">Issue {String(article.issue).padStart(3, "0")}</span>
+        )}
         <h1 className="mt-5 font-display text-4xl uppercase leading-[0.95] tracking-tight sm:text-6xl">{article.title}</h1>
         {article.dek && <p className="mt-6 max-w-2xl text-xl leading-relaxed text-giuseppe-muted">{article.dek}</p>}
         <p className="mt-6 text-[11px] uppercase tracking-widest2 text-giuseppe-muted">

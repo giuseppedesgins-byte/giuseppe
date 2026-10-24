@@ -42,6 +42,10 @@ export async function saveArticle(formData: FormData) {
     return back("error=Add+a+photo+credit+or+licence+note+for+the+cover+image.");
   }
 
+  const issueRaw = clean(formData.get("issue"));
+  const issueNum = issueRaw ? Number(issueRaw) : null;
+  if (issueNum !== null && (!Number.isInteger(issueNum) || issueNum < 1)) return back("error=Issue+must+be+a+whole+number+like+1.");
+
   const subjectIds = formData.getAll("subjectIds").map(String);
 
   const existing = id ? await prisma.article.findUnique({ where: { id } }) : null;
@@ -67,6 +71,9 @@ export async function saveArticle(formData: FormData) {
     publishedAt,
     featured: formData.get("featured") === "on",
     authorName: clean(formData.get("authorName")),
+    issue: issueNum,
+    metaTitle: clean(formData.get("metaTitle")),
+    metaDescription: clean(formData.get("metaDescription")),
     coverImageUrl,
     coverImageAlt: clean(formData.get("coverImageAlt")),
     coverImageCredit,

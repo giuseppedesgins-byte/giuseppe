@@ -965,6 +965,11 @@ model Article {
   publishedAt DateTime?
   featured    Boolean         @default(false) // lead cover story on The Edit
   authorName  String?
+  issue       Int?            // e.g. 1 = "Issue 001"; optional
+
+  // Optional SEO overrides (fall back to title / dek)
+  metaTitle        String?
+  metaDescription  String?
 
   coverImageUrl    String?
   coverImageAlt    String?
@@ -977,4 +982,29 @@ model Article {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+
+// Designer-submitted work for editorial consideration. Entirely separate from BrandApplication
+// (marketplace): submitting here does not apply to sell, and being accepted to sell does not
+// guarantee coverage.
+enum SubmissionStatus {
+  NEW
+  REVIEWED
+  ARCHIVED
+}
+
+model EditorialSubmission {
+  id              String           @id @default(cuid())
+  name            String           // person
+  brandName       String
+  email           String
+  website         String?
+  instagram       String?
+  description     String           @db.Text
+  imageLinks      String[]
+  rightsConfirmed Boolean          // sender confirms they own/can share what they submitted
+  status          SubmissionStatus @default(NEW)
+  notes           String?          @db.Text // internal
+  createdAt       DateTime         @default(now())
 }

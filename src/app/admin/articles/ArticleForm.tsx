@@ -13,6 +13,9 @@ type ArticleValues = {
   publishedAt: Date | null;
   featured: boolean;
   authorName: string | null;
+  issue: number | null;
+  metaTitle: string | null;
+  metaDescription: string | null;
   coverImageUrl: string | null;
   coverImageAlt: string | null;
   coverImageCredit: string | null;
@@ -107,6 +110,21 @@ export function ArticleForm({ article, subjects }: { article?: ArticleValues; su
           approved Giuseppe brand.
         </p>
       </fieldset>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div>
+          <label className={label} htmlFor="issue">Issue number (optional)</label>
+          <input id="issue" name="issue" type="number" min={1} defaultValue={article?.issue ?? ""} placeholder="1" className={input} />
+        </div>
+        <div className="sm:col-span-2">
+          <label className={label} htmlFor="metaTitle">SEO title (optional, defaults to the title)</label>
+          <input id="metaTitle" name="metaTitle" defaultValue={article?.metaTitle ?? ""} className={input} />
+        </div>
+      </div>
+      <div>
+        <label className={label} htmlFor="metaDescription">SEO description (optional, defaults to the standfirst)</label>
+        <textarea id="metaDescription" name="metaDescription" rows={2} defaultValue={article?.metaDescription ?? ""} className={input} />
+      </div>
 
       <div>
         <label className={label} htmlFor="disclosure">Disclosure (optional)</label>

@@ -34,6 +34,7 @@ const listSelect = {
   coverImageAlt: true,
   authorName: true,
   featured: true,
+  issue: true,
 } as const;
 
 export async function getEditHome(category?: ArticleCategory) {
