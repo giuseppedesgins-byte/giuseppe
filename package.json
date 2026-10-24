@@ -5,7 +5,8 @@
   "description": "Giuseppe — a curated global discovery marketplace for emerging fashion brands.",
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && prisma db push --accept-data-loss && prisma db seed && next build",
+    "build": "node scripts/safe-build.js",
+    "build:unsafe-legacy": "prisma generate && prisma db push && prisma db seed && next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",

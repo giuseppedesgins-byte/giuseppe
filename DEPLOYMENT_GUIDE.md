@@ -19,9 +19,12 @@ follow along or pick back up later. Total time: ~30-45 minutes.
 3. Name it `giuseppe` (or anything), leave it **Public** or **Private** (either works), don't check any of the "initialize with" boxes, and click **Create repository**.
 4. On the next page, click **uploading an existing file**.
 5. Find the file **`giuseppe-project-v13.zip`** I gave you in chat and download it (if you haven't already). Double-click it to unzip — this creates a `giuseppe` folder, usually in your **Downloads** folder.
-6. Don't open the folder — just drag the whole `giuseppe` folder icon (from Downloads) straight onto the browser upload area. GitHub will pull in everything inside it, subfolders included, automatically. (If your browser doesn't accept a folder drop, open the `giuseppe` folder instead, press **Cmd+A** to select everything inside at once, then drag that selection over.)
-7. Scroll down, click **Commit changes**.
+6. **GitHub's website only accepts 100 files per upload, and this project has 114, so it comes in two parts.** Instead of the big zip, download and unzip these two smaller ones: **`giuseppe-v13-upload-1-of-2.zip`** and **`giuseppe-v13-upload-2-of-2.zip`**. (The big zip is still your full backup.)
+7. You should be on a GitHub page titled **"Add files via upload"** with a large box that says **"Drag files here to add them to your repository"**. (Already have a repo and updating it? Open your repo on github.com, click **Add file** near the top right of the file list, then **Upload files**.)
+8. **Part 1:** open the unzipped `upload-1-of-2` folder and press **Cmd+Shift+.** (period) to reveal hidden files like `.gitignore`. Press **Cmd+A** to select everything inside, and drag it onto the big box. Wait until every file finishes listing, scroll down, and click the green **Commit changes** button.
+9. **Part 2:** go back to **Add file → Upload files**. Open the unzipped `upload-2-of-2` folder, press **Cmd+A**, and drag everything inside it (a single folder called `src`) onto the box. Wait for the files to list, then click **Commit changes**. GitHub merges it into the `src` folder from Part 1.
 
+*(Always drag what is **inside** the `upload-` folder, not the folder itself, or the files land one level too deep and Vercel won't find them. Vercel may show a red failed deployment after Part 1 only, because the app files aren't there yet. Ignore it; only the deployment after Part 2 matters.)*
 You now have your code on GitHub.
 
 ---
@@ -76,7 +79,7 @@ whenever you want real emails going out.
 | `STRIPE_SECRET_KEY` | your `sk_test_...` from Phase 3 |
 | `STRIPE_PUBLISHABLE_KEY` | your `pk_test_...` from Phase 3 |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_placeholder` (we'll fix this in Phase 6) |
-| `ADMIN_SESSION_SECRET` | `06cf722699746e500b7ceca4392a64f471514ce00b25dd8d852002973ec7bd90` |
+| `ADMIN_SESSION_SECRET` | a long random string you generate yourself (40+ characters; a password manager can make one). Never reuse one that appears in any document. |
 | `ADMIN_EMAIL` | an email you'll use to log into `/admin` — pick anything, e.g. `you@example.com` |
 | `ADMIN_PASSWORD` | a password you'll remember, for `/admin` login |
 | `NEXT_PUBLIC_SITE_URL` | `https://placeholder.vercel.app` (we'll fix this in Phase 6) |
@@ -109,6 +112,12 @@ whenever you want real emails going out.
 5. Go to Vercel's **Deployments** tab → click the **...** menu on the latest deployment → **Redeploy**, so the new values take effect.
 
 *(Seller payouts, membership billing, and Stripe Tax are all built in and ready — but each one only fully activates once you, personally, flip it on: Connect payouts work once a seller completes their own Stripe onboarding from the seller portal; Tax stays off until `STRIPE_AUTOMATIC_TAX_ENABLED` is set to `true` and Stripe Tax is configured on your account. Nothing here is required to launch — checkout and orders work today regardless.)*
+
+---
+
+## After your first deploy: the safe workflow
+
+Once the site is live, do not keep uploading straight to the live branch. Follow `docs/WORKFLOW.md` (two branches, private previews, a staging database) and the one-time setup in `docs/PHASE0_SETUP_STEPS.md`.
 
 ---
 
