@@ -2,6 +2,8 @@ import { LegalLayout } from "@/components/LegalLayout";
 import { getMarketplaceSettings } from "@/lib/settings";
 
 export const metadata = { title: "Seller Agreement" };
+// Reads live settings from the database, so render per request rather than at build time.
+export const dynamic = "force-dynamic";
 
 export default async function SellerAgreementPage() {
   const settings = await getMarketplaceSettings();

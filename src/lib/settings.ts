@@ -11,7 +11,16 @@ const SETTINGS_ID = "singleton";
 export async function getMarketplaceSettings() {
   const existing = await prisma.marketplaceSettings.findUnique({ where: { id: SETTINGS_ID } });
   if (existing) return existing;
-  return prisma.marketplaceSettings.create({ data: { id: SETTINGS_ID } });
+  try {
+    return await prisma.marketplaceSettings.create({ data: { id: SETTINGS_ID } });
+  } catch (err: any) {
+    // Several pages can ask for the settings at the same moment (e.g. during a build) and race to
+    // create the single row. If someone else created it first (P2002), just read theirs.
+    if (err?.code === "P2002") {
+      return prisma.marketplaceSettings.findUniqueOrThrow({ where: { id: SETTINGS_ID } });
+    }
+    throw err;
+  }
 }
 
 export async function updateMarketplaceSettings(data: {

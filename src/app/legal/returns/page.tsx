@@ -2,6 +2,8 @@ import { LegalLayout } from "@/components/LegalLayout";
 import { getMarketplaceSettings } from "@/lib/settings";
 
 export const metadata = { title: "Returns & Refunds" };
+// Reads live settings from the database, so render per request rather than at build time.
+export const dynamic = "force-dynamic";
 
 export default async function ReturnsPage() {
   const settings = await getMarketplaceSettings();
